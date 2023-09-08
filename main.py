@@ -23,4 +23,14 @@ c.execute('''CREATE TABLE IF NOT EXISTS folders
              FOREIGN KEY(user_id) REFERENCES users(user_id),
              FOREIGN KEY(parent_folder_id) REFERENCES folders(folder_id))''')
 
+c.execute('''CREATE TABLE IF NOT EXISTS files
+             (file_id TEXT,
+             file_name TEXT,
+             path_file TEXT,
+             user_id TEXT,
+             folder_id TEXT,
+             upload_date DATETIME,
+             file_size INTEGER,
+             FOREIGN KEY(user_id) REFERENCES users(user_id),
+             FOREIGN KEY(folder_id) REFERENCES folders(folder_id))''')
 conn.close()
