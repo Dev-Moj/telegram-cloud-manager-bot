@@ -19,7 +19,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS folders
              folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
              folder_name TEXT, 
              parent_folder_id TEXT DEFAULT 'root',
-             create_date DATETIME,
+             create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
              FOREIGN KEY(user_id) REFERENCES users(user_id),
              FOREIGN KEY(parent_folder_id) REFERENCES folders(folder_id))''')
 
@@ -58,10 +58,21 @@ def add_user(user):
     conn.close()
 
 
+def create_folder(user_id, name, parent_folder_id):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO folders (user_id, folder_name ,parent_folder_id,  create_date) VALUES (? ,? ,? ,datetime('now'))",
+        (user_id, name, parent_folder_id))
+    conn.commit()
+    conn.close()
+
+
 @bot.message_handler(commands=['start'])
 def start(message):
     if not user_exists(message.from_user):
         add_user(message.from_user)
+        create_folder(user_id=message.from_user.id, name='root', parent_folder_id='root')
         print('User added')
     else:
         print('User was available')
