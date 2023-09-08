@@ -11,7 +11,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS users
              (user_id TEXT,
              user_name TEXT,
              view_name TEXT,
-             create_date DATETIME
+             create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
              )''')
 
 c.execute('''CREATE TABLE IF NOT EXISTS folders 
@@ -34,3 +34,38 @@ c.execute('''CREATE TABLE IF NOT EXISTS files
              FOREIGN KEY(user_id) REFERENCES users(user_id),
              FOREIGN KEY(folder_id) REFERENCES folders(folder_id))''')
 conn.close()
+
+
+def user_exists(user):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM users WHERE user_id=?", (user.id,))
+    result = c.fetchone()
+    count = result[0]
+    conn.close()
+    if count > 0:
+        return True
+    else:
+        return False
+
+
+def add_user(user):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO users (user_id, user_name, view_name, create_date) VALUES (?, ?, ?, datetime('now'))",
+              (user.id, user.username, user.first_name))
+    conn.commit()
+    conn.close()
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    if not user_exists(message.from_user):
+        add_user(message.from_user)
+        print('User added')
+    else:
+        print('User was available')
+
+
+if __name__ == "__main__":
+    bot.polling()
