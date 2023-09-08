@@ -14,6 +14,13 @@ c.execute('''CREATE TABLE IF NOT EXISTS users
              create_date DATETIME
              )''')
 
-
+c.execute('''CREATE TABLE IF NOT EXISTS folders 
+             (user_id TEXT,
+             folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
+             folder_name TEXT, 
+             parent_folder_id TEXT DEFAULT 'root',
+             create_date DATETIME,
+             FOREIGN KEY(user_id) REFERENCES users(user_id),
+             FOREIGN KEY(parent_folder_id) REFERENCES folders(folder_id))''')
 
 conn.close()
