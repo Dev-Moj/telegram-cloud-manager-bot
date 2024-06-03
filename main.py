@@ -8,8 +8,8 @@ from pprint import pprint
 load_dotenv()
 
 apihelper.proxy = {
-    'http': 'http://127.0.0.1:8889',
-    'https': 'http://127.0.0.1:8889'
+    'http': 'http://127.0.0.1:2334',
+    'https': 'http://127.0.0.1:2334'
 }
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -61,11 +61,19 @@ def add_user(user):
     conn.close()
 
 
-def create_folder(user_id, name, parent_folder_id):
+def create_folder(user_id):
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute("INSERT INTO dir (user_id, name ,parent_id,  create_date, type) VALUES (? ,? ,? ,datetime('now'),'d')",
-              (user_id, name, parent_folder_id))
+              (user_id, name, current_path))
+    conn.commit()
+    conn.close()
+def save_file(user_id,name):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    global current_path
+    c.execute("INSERT INTO dir (user_id, name ,parent_id,  create_date, type) VALUES (? ,? ,? ,datetime('now'),'f')",
+              (user_id, name, current_path))
     conn.commit()
     conn.close()
 
@@ -78,7 +86,7 @@ def folder_file_view(user_id, parent_folder_id=''):
     result = c.fetchall()
     print(result)
     global current_path
-    current_path = result[0][4]
+    current_path = result[0][4] if result else current_path
     back = [telebot.types.InlineKeyboardButton('../', callback_data=f'?q=b-{result[0][4]}')] if result else []
     dirs = [telebot.types.InlineKeyboardButton(i[2], callback_data=f'?q=d-{i[1]}') for i in result if i[3] == 'd']
     files = [telebot.types.InlineKeyboardButton(i[2], callback_data=f'?q=-f{i[1]}') for i in result if i[3] == 'f']
@@ -87,11 +95,18 @@ def folder_file_view(user_id, parent_folder_id=''):
     return back + dirs + files
 
 
-# @bot.message_handler(func=lambda x: True, content_types=['audio', 'photo', 'voice', 'video', 'document', 'contact'])
-# def handle_docs(message):
-#     print(message)
-#     print(current_path)
+@bot.message_handler(func=lambda x: True, content_types=['audio', 'photo', 'voice', 'video', 'document', 'contact'])
+def handle_docs(message):
 
+    # print(message)
+    # print(current_path)
+
+    file = eval(f'message.{message.content_type}')
+    file_id = [i.file_id for i in file][1] if isinstance(file,list) else file.file_id
+    chat_id = message.from_user.id
+    save_file(message.from_user.id,file_id)
+    # func = eval(f'bot.send_{message.content_type}')
+    # func(chat_id, file_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('?q=b-'))
 def back(message):
@@ -103,7 +118,7 @@ def back(message):
     d = folder_file_view(message.from_user.id, result[0])
     buttons = telebot.types.InlineKeyboardMarkup(row_width=1)
     buttons.add(*d)
-
+    bot.delete_message(chat_id, message.message.message_id)
     chat_id = message.from_user.id
     bot.send_message(chat_id, "list", reply_markup=buttons)
 
@@ -114,9 +129,9 @@ def get_dirs(message):
     d = folder_file_view(message.from_user.id, parent_folder_id=dir)
     buttons = telebot.types.InlineKeyboardMarkup(row_width=1)
     buttons.add(*d)
-    print(dir)
     chat_id = message.from_user.id
     txt = 'list' if d else 'noting'
+    bot.delete_message(chat_id,message.message.message_id)
     bot.send_message(chat_id, txt, reply_markup=buttons)
 
 
